@@ -14,20 +14,9 @@
 
 #pragma once
 
-#ifdef _WIN32
-    #include <windows.h>
-    #include <winsock2.h>  // put winsock2.h here since spdlog.h calls windows.h
-#endif
-
 #include <string>
 #include <vector>
-
-#include <asio.hpp>
-#include <asio/ssl/context.hpp>
-#include <asio/ssl/stream.hpp>
-#include <asio/ssl/rfc2818_verification.hpp>
-
-#include "UrlParser.h"
+#include <string_view>
 
 using asio::ip::tcp;
 namespace ssl = asio::ssl;
@@ -42,7 +31,7 @@ class Downloader {
         std::string redirectUrl;
     };
     using DownloadedUtf8 = std::string;
-    static NetworkHelper::Response dumbGet(const std::string &downloadUrl, bool head = false);
+    static Response dumbGet(const std::string &downloadUrl, bool head = false);
     static constexpr std::string_view LocationTag = "Location: ";
 };
 

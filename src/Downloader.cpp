@@ -15,6 +15,12 @@
 #include <spdlog/spdlog.h>
 
 #include "Downloader.h"
+#include "UrlParser.h"
+
+#include <asio.hpp>
+#include <asio/ssl/context.hpp>
+#include <asio/ssl/stream.hpp>
+#include <asio/ssl/rfc2818_verification.hpp>
 
 Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool head) {
     // decompose url

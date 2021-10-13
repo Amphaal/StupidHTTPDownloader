@@ -1,0 +1,42 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceRoot}"
+    },
+    "tasks": [
+        {
+            "label": "1. Fetch submodules",
+            "type": "shell",
+                "command": "git submodule update --init --recursive"
+        },
+        {
+            "label": "2. Generate Project files",
+            "group": {
+                "isDefault": true,
+                "kind": "test"
+            },
+            "type": "shell",
+            "command": "cmake -GNinja -Bbuild -H. -DBUILD_TESTING=1"
+        },
+        {
+            "label": "2+. Build",
+            "type": "shell",
+            "command": "ninja",
+            "options": {
+                "cwd": "${workspaceRoot}/build"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "2. Build and test",
+            "type": "shell",
+            "command": "ninja;cd tests;ctest",
+            "options": {
+                "cwd": "${workspaceRoot}/build"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
