@@ -1,6 +1,6 @@
-// AudioTube C++
-// C++ fork based on https://github.com/Tyrrrz/YoutubeExplode
-// Copyright (C) 2019-2021 Guillaume Vara
+// StupidHTTPDownloader
+// Really stupid library to download HTTP(S) content
+// Copyright (C) 2021 Guillaume Vara
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,85 +17,81 @@
 #include "Downloader.h"
 #include "UrlParser.h"
 
-#include <asio.hpp>
 #include <asio/ssl/context.hpp>
 #include <asio/ssl/stream.hpp>
 #include <asio/ssl/rfc2818_verification.hpp>
 
-Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool head) {
-    // decompose url
-    UrlParser url_decomposer(downloadUrl);
-    auto serverName = url_decomposer.host();
-    auto scheme = url_decomposer.scheme();
-    auto getCommand = url_decomposer.pathAndQuery();
-    auto isHTTPS = scheme == "https";
+namespace ssl = asio::ssl;
 
+template<>
+Downloader::Response Downloader::_dumbGetFromScheme<Downloader::HandledSchemes::HTTPS>(const UrlParser &url, bool head, asio::io_service &io_service, tcp::resolver::iterator resolvedEndpoints) {
     // setup SSL
-    if (isHTTPS) {
-        ssl::context ssl_ctx(ssl::context::sslv23);
-        ssl_ctx.set_default_verify_paths();
-    }
+    ssl::context ssl_ctx(ssl::context::sslv23);
+    ssl_ctx.set_default_verify_paths();
 
-    // setup service
-    asio::io_service io_service;
+    // initiate
+    asio::ssl::stream<tcp::socket> ssl_sock(io_service, ssl_ctx);
 
-    // resolve IP
-    tcp::resolver resolver(io_service);
-    tcp::resolver::query query(serverName, scheme);
-    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+    // Connect to host
+    asio::connect(ssl_sock.lowest_layer(), resolvedEndpoints);
+    ssl_sock.lowest_layer().set_option(tcp::no_delay(true));
+
+        // Perform SSL handshake and verify the remote host's certificate.
+        // TODO(amphaal) might need to implement https://stackoverflow.com/questions/39772878/reliable-way-to-get-root-ca-certificates-on-windows
+        // ssl_sock.set_verify_mode(ssl::verify_peer);
+        // ssl_sock.set_verify_callback(ssl::rfc2818_verification(serverName));
+
+    // no check of certificates
+    ssl_sock.set_verify_mode(ssl::verify_none);
+    ssl_sock.handshake(ssl::stream<tcp::socket>::client);
+
+    //
+    return _dumbGet(ssl_sock, url, head);
+}
+
+template<>
+Downloader::Response Downloader::_dumbGetFromScheme<Downloader::HandledSchemes::HTTP>(const UrlParser &url, bool head, asio::io_service &io_service, tcp::resolver::iterator resolvedEndpoints) {
+    // initiate
+    tcp::socket socket(io_service);
+
+    // Try each endpoint until we successfully establish a connection.
+    asio::error_code error;
     tcp::resolver::iterator end;
+    do {
+        socket.close();
+        socket.connect(*resolvedEndpoints++, error);
+    } while (error.value() && resolvedEndpoints != end);
 
-    // initialize socket
-    if (isHTTPS) {
-        // initiate
-        asio::ssl::stream<tcp::socket> ssl_sock(io_service, ssl_ctx);
+    //
+    return _dumbGet(socket, url, head);
+}
 
-        // Connect to host
-        asio::connect(ssl_sock.lowest_layer(), resolver.resolve(query));
-        ssl_sock.lowest_layer().set_option(tcp::no_delay(true));
-
-            // Perform SSL handshake and verify the remote host's certificate.
-            // TODO(amphaal) might need to implement https://stackoverflow.com/questions/39772878/reliable-way-to-get-root-ca-certificates-on-windows
-            // ssl_sock.set_verify_mode(ssl::verify_peer);
-            // ssl_sock.set_verify_callback(ssl::rfc2818_verification(serverName));
-
-        // no check of certificates
-        ssl_sock.set_verify_mode(ssl::verify_none);
-        ssl_sock.handshake(ssl::stream<tcp::socket>::client);
-
-    } else {
-        // initiate
-        tcp::socket socket(io_service);
-
-        // Try each endpoint until we successfully establish a connection.
-        asio::error_code error;
-        do {
-            socket.close();
-            socket.connect(*endpoint_iterator++, error);
-        } while (error.value() && endpoint_iterator != end);
-    }
-
+template<typename Sock>
+Downloader::Response Downloader::_dumbGet(Sock& sock, const UrlParser &url, bool head) {
     // start writing
     asio::streambuf request;
     std::ostream request_stream(&request);
 
     auto method = head ? "HEAD" : "GET";
 
+    const auto getCommand = url.pathAndQuery();
+    const auto host = url.host();
+
     request_stream << method << " " << getCommand << " HTTP/1.0\r\n";
-    request_stream << "Host: " << serverName << "\r\n";
+    request_stream << "Host: " << host << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: close\r\n\r\n";
 
-    if (!head)
-        spdlog::debug("StupidHTTPDownloader : Downloading [{}]...",
-            downloadUrl);
-
     // Send the request.
-    asio::write(ssl_sock, request);
+    asio::write(sock, request);
+
+    if (!head)
+        spdlog::debug("StupidHTTPDownloader : Downloading [{}, {}]...",
+            host, getCommand);
 
     // Read the response status line.
     asio::streambuf response;
-    asio::read_until(ssl_sock, response, "\r\n");
+    asio::read_until(sock, response, "\r\n");
 
         // Check that response is OK.
         std::istream response_stream(&response);
@@ -113,7 +109,7 @@ Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool he
         std::getline(response_stream, status_message);
 
     // Read the response headers, which are terminated by a blank line.
-    asio::read_until(ssl_sock, response, "\r\n\r\n");
+    asio::read_until(sock, response, "\r\n\r\n");
 
     // Process the response headers.
     std::string headerTmp;
@@ -151,20 +147,20 @@ Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool he
         }
         // Read until EOF, writing data to output as we go.
         asio::error_code error;
-        while (asio::read(ssl_sock, response, asio::transfer_at_least(1), error)) {
+        while (asio::read(sock, response, asio::transfer_at_least(1), error)) {
             output_stream << &response;
         }
     }
 
-    spdlog::debug("StupidHTTPDownloader : Finished downloading [{}]",
-        downloadUrl);
+    spdlog::debug("StupidHTTPDownloader : Finished downloading [{}, {}]",
+        host, getCommand);
 
-    AudioTube::NetworkHelper::Response outResponse {
-        output_stream.str(),
-        headers,
+    Response outResponse {
         hasContentLengthHeader,
         status_code,
-        redirectUrl
+        redirectUrl,
+        output_stream.str(),
+        headers
     };
 
     spdlog::debug("StupidHTTPDownloader : Response length {}, headers {}",
@@ -172,4 +168,25 @@ Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool he
         outResponse.headers.size());
 
     return outResponse;
+}
+
+Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool head) {
+    // decompose url
+    UrlParser url_decomposer(downloadUrl);
+    auto serverName = url_decomposer.host();
+    auto scheme = url_decomposer.scheme();
+
+    // setup service
+    asio::io_service io_service;
+
+    // resolve IP
+    tcp::resolver resolver(io_service);
+    tcp::resolver::query query(serverName, scheme);
+    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+    // switch HTTP / HTTPS
+    if (scheme == "https")
+        return _dumbGetFromScheme<HandledSchemes::HTTPS>(url_decomposer, head, io_service, endpoint_iterator);
+    else
+        return _dumbGetFromScheme<HandledSchemes::HTTP> (url_decomposer, head, io_service, endpoint_iterator);
 }

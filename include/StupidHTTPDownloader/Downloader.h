@@ -1,6 +1,6 @@
-// AudioTube C++
-// C++ fork based on https://github.com/Tyrrrz/YoutubeExplode
-// Copyright (C) 2019-2021 Guillaume Vara
+// StupidHTTPDownloader
+// Really stupid library to download HTTP(S) content
+// Copyright (C) 2021 Guillaume Vara
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,20 +18,34 @@
 #include <vector>
 #include <string_view>
 
+#include <asio.hpp>
 using asio::ip::tcp;
-namespace ssl = asio::ssl;
+
+class UrlParser;
 
 class Downloader {
  public:
     struct Response {
-        std::string messageBody;
-        std::vector<std::string> headers;
         bool hasContentLengthHeader = false;
         unsigned int statusCode = 0;
         std::string redirectUrl;
+        std::string messageBody;
+        std::vector<std::string> headers;
     };
-    using DownloadedUtf8 = std::string;
+
     static Response dumbGet(const std::string &downloadUrl, bool head = false);
+
+ private:
+    enum class HandledSchemes {
+        HTTP,
+        HTTPS
+    };
+
+    template<HandledSchemes scheme>
+    static Response _dumbGetFromScheme(const UrlParser &url, bool head, asio::io_service &io_service, tcp::resolver::iterator resolvedEndpoints);
+
+    template<typename Sock>
+    static Response _dumbGet(Sock& sock, const UrlParser &url, bool head);
+
     static constexpr std::string_view LocationTag = "Location: ";
 };
-

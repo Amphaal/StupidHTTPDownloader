@@ -1,6 +1,6 @@
-// AudioTube C++
-// C++ fork based on https://github.com/Tyrrrz/YoutubeExplode
-// Copyright (C) 2019-2021 Guillaume Vara
+// StupidHTTPDownloader
+// Really stupid library to download HTTP(S) content
+// Copyright (C) 2021 Guillaume Vara
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 
 #include "UrlParser.h"
 
-AudioTube::UrlParser::UrlParser(std::string_view rawUrlView) {
+UrlParser::UrlParser(std::string_view rawUrlView) {
     // find scheme separator
     std::string schemeSeparator("://");
     auto findSS = rawUrlView.find(schemeSeparator);
@@ -41,27 +41,27 @@ AudioTube::UrlParser::UrlParser(std::string_view rawUrlView) {
     this->_pathAndQuery = rawUrlView.substr(findFirstSlash);
 }
 
-bool AudioTube::UrlParser::isValid() const {
+bool UrlParser::isValid() const {
     return this->_isValid;
 }
 
-std::string AudioTube::UrlParser::host() const {
+std::string UrlParser::host() const {
     return std::string { this->_host };
 }
 
-std::string AudioTube::UrlParser::scheme() const {
+std::string UrlParser::scheme() const {
     return std::string{ this->_scheme };
 }
 
-std::string AudioTube::UrlParser::pathAndQuery() const {
+std::string UrlParser::pathAndQuery() const {
     return std::string{ this->_pathAndQuery };
 }
 
-AudioTube::UrlQuery::UrlQuery() { }
-AudioTube::UrlQuery::UrlQuery(const UrlQuery::Key &key, const UrlQuery::SubQuery &subQuery) : UrlQuery(subQuery) {
+UrlQuery::UrlQuery() { }
+UrlQuery::UrlQuery(const UrlQuery::Key &key, const UrlQuery::SubQuery &subQuery) : UrlQuery(subQuery) {
     this->_selfKey = key;
 }
-AudioTube::UrlQuery::UrlQuery(const std::string_view &query) {
+UrlQuery::UrlQuery(const std::string_view &query) {
     this->_wholeQuery = query;
 
     // setup for search
@@ -107,37 +107,37 @@ AudioTube::UrlQuery::UrlQuery(const std::string_view &query) {
     }
 }
 
-std::string AudioTube::UrlQuery::key() const {
+std::string UrlQuery::key() const {
     return this->_selfKey;
 }
 
-bool AudioTube::UrlQuery::hasSubqueries() const {
+bool UrlQuery::hasSubqueries() const {
     return this->_subqueries.size();
 }
 
-AudioTube::UrlQuery AudioTube::UrlQuery::operator[](const UrlQuery::Key &key) const {
+UrlQuery UrlQuery::operator[](const UrlQuery::Key &key) const {
     auto keyFound = this->_subqueries.find(key);
     if (keyFound == this->_subqueries.end()) return UrlQuery();
     return UrlQuery(key, keyFound->second);
 }
 
-std::vector<AudioTube::UrlQuery> AudioTube::UrlQuery::subqueries() const {
-    std::vector<AudioTube::UrlQuery> out;
+std::vector<UrlQuery> UrlQuery::subqueries() const {
+    std::vector<UrlQuery> out;
     for (auto &[k, v] : this->_subqueries) {
         out.emplace(out.end(), k, v);
     }
     return out;
 }
 
-std::string AudioTube::UrlQuery::percentDecoded() const {
-    return AudioTube::Url::decode(this->undecoded());
+std::string UrlQuery::percentDecoded() const {
+    return Url::decode(this->undecoded());
 }
 
-std::string AudioTube::UrlQuery::undecoded() const {
+std::string UrlQuery::undecoded() const {
     return std::string { this->_wholeQuery };
 }
 
-std::string AudioTube::Url::decode(const std::string & sSrc) {
+std::string Url::decode(const std::string & sSrc) {
     // Note from RFC1630:  "Sequences which start with a percent sign
     // but are not followed by two hexadecimal characters (0-9, A-F) are reserved
     // for future extension"
@@ -172,7 +172,7 @@ std::string AudioTube::Url::decode(const std::string & sSrc) {
     return sResult;
 }
 
-std::string AudioTube::Url::encode(const std::string & sSrc) {
+std::string Url::encode(const std::string & sSrc) {
     const unsigned char * pSrc = (const unsigned char *)sSrc.c_str();
     const int SRC_LEN = sSrc.length();
     unsigned char * const pStart = new unsigned char[SRC_LEN * 3];
@@ -190,13 +190,16 @@ std::string AudioTube::Url::encode(const std::string & sSrc) {
         }
     }
 
-    std::string sResult((char *)pStart, (char *)pEnd);
+    std::string sResult(
+        reinterpret_cast<char *>(pStart),
+        reinterpret_cast<char *>(pEnd)
+    );
     delete [] pStart;
     return sResult;
 }
 
 // Only alphanum is safe.
-const char AudioTube::Url::_SAFE[256] = {
+const char Url::_SAFE[256] = {
     /*      0 1 2 3  4 5 6 7  8 9 A B  C D E F */
     /* 0 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
     /* 1 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -219,7 +222,7 @@ const char AudioTube::Url::_SAFE[256] = {
     /* F */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
 };
 
-const char AudioTube::Url::_HEX2DEC[256] = {
+const char Url::_HEX2DEC[256] = {
     /*       0  1  2  3   4  5  6  7   8  9  A  B   C  D  E  F */
     /* 0 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
     /* 1 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
@@ -242,4 +245,4 @@ const char AudioTube::Url::_HEX2DEC[256] = {
     /* F */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1
 };
 
-const char AudioTube::Url::_DEC2HEX[16 + 1] = "0123456789ABCDEF";
+const char Url::_DEC2HEX[16 + 1] = "0123456789ABCDEF";

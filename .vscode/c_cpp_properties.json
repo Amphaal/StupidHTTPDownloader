@@ -1,22 +1,20 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "MacOS",
             "includePath": [
                 "${default}",
                 "${workspaceFolder}/include/StupidHTTPDownloader",
                 "/usr/local/opt/spdlog/include",
                 "/usr/local/opt/asio/include",
                 "/usr/local/opt/openssl@3/include",
-                "/usr/local/opt/catch2/include"
+                "/usr/local/opt/catch2/include",
+                "/usr/local/opt/fmt/include"
             ],
             "compilerPath": "/usr/local/opt/llvm/bin/clang",
             "cStandard": "c17",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "macos-clang-x64",
-            "defines": [
-                "SPDLOG_FMT_EXTERNAL"
-            ]
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-x64"
         }
     ],
     "version": 4
