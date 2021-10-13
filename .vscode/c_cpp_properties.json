@@ -4,6 +4,7 @@
             "name": "MacOS",
             "includePath": [
                 "${default}",
+                "${workspaceFolder}/include",
                 "${workspaceFolder}/include/StupidHTTPDownloader",
                 "/usr/local/opt/spdlog/include",
                 "/usr/local/opt/asio/include",

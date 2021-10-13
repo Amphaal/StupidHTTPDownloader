@@ -25,6 +25,7 @@ find_package(OpenSSL REQUIRED)
 #################
 
 add_library(asio INTERFACE)
+add_library(asio::asio ALIAS asio)
 
 find_path(Asio_INCLUDE_DIR NAMES asio.hpp REQUIRED)
 target_include_directories(asio INTERFACE ${Asio_INCLUDE_DIR})
@@ -38,6 +39,12 @@ if(WIN32)
     target_compile_definitions(asio INTERFACE WIN32_LEAN_AND_MEAN) # prevents <winsock2.h> warnings
     target_link_libraries(asio INTERFACE ws2_32 mswsock)
 endif()
+
+###################
+## Deps : spdlog ##
+###################
+
+find_package(spdlog REQUIRED)
 
 ##
 ## declare library
@@ -54,8 +61,8 @@ target_sources(StupidHTTPDownloader PRIVATE
 )
 
 target_link_libraries(StupidHTTPDownloader PRIVATE
-    asio
-    spdlog
+    asio::asio
+    spdlog::spdlog
     OpenSSL::Crypto
     OpenSSL::SSL
 )
