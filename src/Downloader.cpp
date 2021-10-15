@@ -182,11 +182,12 @@ Downloader::Response Downloader::dumbGet(const std::string &downloadUrl, bool he
     // resolve IP
     tcp::resolver resolver(io_service);
     tcp::resolver::query query(serverName, scheme);
-    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+    auto endpoint_iterator = resolver.resolve(query);
 
     // switch HTTP / HTTPS
-    if (scheme == "https")
+    if (url_decomposer.isHTTPS()) {
         return _dumbGetFromScheme<HandledSchemes::HTTPS>(url_decomposer, head, io_service, endpoint_iterator);
-    else
+    } else {
         return _dumbGetFromScheme<HandledSchemes::HTTP> (url_decomposer, head, io_service, endpoint_iterator);
+    }
 }

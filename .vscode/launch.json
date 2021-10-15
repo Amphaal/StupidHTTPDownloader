@@ -19,8 +19,7 @@
                         "text": "-enable-pretty-printing",
                         "ignoreFailures": true
                     }
-                ],
-                "externalConsole": true // TODO : unset once bug is fixed
+                ]
             },
             "args": [],
             "stopAtEntry": false,

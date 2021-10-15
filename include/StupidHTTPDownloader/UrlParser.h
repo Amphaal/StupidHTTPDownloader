@@ -27,12 +27,14 @@ class UrlParser {
     std::string scheme() const;
     std::string pathAndQuery() const;
     bool isValid() const;
+    bool isHTTPS() const;
 
  private:
+    bool _isValid = false;
+    bool _noPathInitiator = true;
     std::string_view _host;
     std::string_view _scheme;
     std::string_view _pathAndQuery;
-    bool _isValid = false;
 };
 
 class UrlQuery {

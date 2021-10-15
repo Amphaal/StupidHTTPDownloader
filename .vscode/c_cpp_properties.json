@@ -15,7 +15,30 @@
             "compilerPath": "/usr/local/opt/llvm/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "macos-clang-x64"
+            "intelliSenseMode": "macos-clang-x64",
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "SPDLOG_FMT_EXTERNAL"
+            ]
+        },
+        {
+            "name": "Windows",
+            "intelliSenseMode": "windows-gcc-x64",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/StupidHTTPDownloader"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "SPDLOG_FMT_EXTERNAL"
+            ]
         }
     ],
     "version": 4

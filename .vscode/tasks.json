@@ -18,7 +18,12 @@
                 "kind": "test"
             },
             "type": "shell",
-            "command": "cmake -GNinja -Bbuild -H. -DBUILD_TESTING=1"
+            "windows": {
+                "command": "cmake -GNinja -Bbuild -H. -DBUILD_TESTING=1 -DCMAKE_TOOLCHAIN_FILE=toolchains/msys.cmake"
+            },
+            "osx" : {
+                "command": "cmake -GNinja -Bbuild -H. -DBUILD_TESTING=1 -DCMAKE_TOOLCHAIN_FILE=toolchains/osx.cmake"
+            }
         },
         {
             "label": "2+. Build",

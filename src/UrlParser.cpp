@@ -14,31 +14,49 @@
 
 #include "UrlParser.h"
 
+#include <spdlog/spdlog.h>
+
 UrlParser::UrlParser(std::string_view rawUrlView) {
     // find scheme separator
     std::string schemeSeparator("://");
     auto findSS = rawUrlView.find(schemeSeparator);
-    if (findSS == std::string::npos || findSS == 0) return;
-    this->_scheme = rawUrlView.substr(0, findSS);
-
-    this->_isValid = true;
-
-    // find first slash (host)
-    auto afterSchemeSeparatorPos = findSS + schemeSeparator.length();
-    auto findFirstSlash = rawUrlView.find("/", afterSchemeSeparatorPos);
-
-    if (findFirstSlash == 0) return;
-    if (findFirstSlash == std::string::npos) {
-        this->_host = rawUrlView.substr(afterSchemeSeparatorPos);
-        this->_pathAndQuery = "/";
+    
+    // if path separator is found without scheme or not found at all, return
+    if (findSS == std::string::npos || findSS == 0) {
         return;
     }
 
-    auto pathStartIndex = findFirstSlash - afterSchemeSeparatorPos;
+    // define scheme
+    this->_scheme = rawUrlView.substr(0, findSS);
+
+    // is considered valid
+    this->_isValid = true;
+
+    // find first / or ? to determine host bounds
+    auto afterSchemeSeparatorPos = findSS + schemeSeparator.length();
+    auto findFirstSlash = rawUrlView.find("/", afterSchemeSeparatorPos);
+    auto findFirstIPoint = rawUrlView.find("?", afterSchemeSeparatorPos);
+
+    // no bounds fond, consider host being the remaning of string
+    if (findFirstSlash == std::string::npos && findFirstIPoint == std::string::npos) {
+        this->_host = rawUrlView.substr(afterSchemeSeparatorPos);
+        return;
+    }
+
+    // if a slash is found after scheme
+    if(findFirstSlash != std::string::npos) {
+        _noPathInitiator = false;
+    }
+
+    // pick which separator came first
+    auto firstHostSeparatorPos = findFirstSlash > findFirstIPoint ? findFirstIPoint : findFirstSlash;
+
+    // determine host part
+    auto pathStartIndex = firstHostSeparatorPos - afterSchemeSeparatorPos;
     this->_host = rawUrlView.substr(afterSchemeSeparatorPos, pathStartIndex);
 
     // else is path + query
-    this->_pathAndQuery = rawUrlView.substr(findFirstSlash);
+    this->_pathAndQuery = rawUrlView.substr(firstHostSeparatorPos);
 }
 
 bool UrlParser::isValid() const {
@@ -53,8 +71,14 @@ std::string UrlParser::scheme() const {
     return std::string{ this->_scheme };
 }
 
+bool UrlParser::isHTTPS() const {
+    return this->_scheme == "https";
+}
+
 std::string UrlParser::pathAndQuery() const {
-    return std::string{ this->_pathAndQuery };
+    std::string out { this->_pathAndQuery };
+    if (_noPathInitiator) out = "/" + out;
+    return out;
 }
 
 UrlQuery::UrlQuery() { }
