@@ -1,4 +1,7 @@
 # StupidHTTPDownloader
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/64b53a6be63947669b4854af9f691b62)](https://app.codacy.com/gh/Amphaal/StupidHTTPDownloader?utm_source=github.com&utm_medium=referral&utm_content=Amphaal/StupidHTTPDownloader&utm_campaign=Badge_Grade_Settings)
+
 Really stupid library to download HTTP(S) content
 
 ## License
