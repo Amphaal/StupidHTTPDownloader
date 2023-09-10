@@ -80,7 +80,9 @@ Downloader::Response Downloader::_dumbGet(Sock& sock, const UrlParser &url, bool
     request_stream << method << " " << getCommand << " HTTP/1.0\r\n";
     request_stream << "Host: " << host << "\r\n";
     request_stream << "Accept: */*\r\n";
-    request_stream << "Connection: close\r\n\r\n";
+    request_stream << "Connection: close\r\n";
+    request_stream << "User-Agent: StupidHTTPDownloader\r\n";
+    request_stream << "\r\n"; // signals end
 
     // Send the request.
     asio::write(sock, request);
